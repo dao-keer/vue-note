@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>ideal</title>
+	<meta charset="utf-8">
+</head>
+
+<body>
+	<div id="test">
+		<p>{{msg}}</p>
+		<p>{{msg}}</p>
+		<p>{{msg}}</p>
+		<p>{{what}}</p>
+		<p>{{hey}}</p>
+	</div>
+	<script>
+		// 自定义属性的名称，表明某个元素上有关联vue的变量
+		var bindingMark = 'data-element-binding'
+		// 初始化函数，接收根节点的id和初始化的变量值的map
+		function Element(id, initData) {
+
+			var self = this, // 缓存当前实例
+				// 获取当前根节点的dom对象
+				el = self.el = document.getElementById(id)
+			// 缓存绑定到dom上的变量，串联了dom和data，使得set的时候能更新dom，get的时候能取得正确的最新值
+			bindings = {} // the internal copy
+			// 初始化当前实例上的data对象
+			data = self.data = {} // the external interface
+			// 找到根节点下面所有绑定了变量的地方，并将这些变量存储到bindings对象上，
+			// 然后将这些变量{{...}}替换成固定的模式 '<span data-element-binding="..."></span>'
+			content = el.innerHTML.replace(/\{\{(.*)\}\}/g, markToken)
+			// 这个时候dom已经发生了变化，并且所有绑定的变量都被收集起来了，并赋值了{}初始值
+			el.innerHTML = content
+
+			for (var variable in bindings) {
+				// 遍历bindings收集的变量，利用Object.defineProperty来监听每个变量的更改和取值动作
+				bind(variable)
+			}
+
+			// 关键步骤
+			// 根据传入的初始map（initData）来更新实例data属性上对应的变量值，进而更新dom
+			if (initData) {
+				for (var variable in initData) {
+					data[variable] = initData[variable]
+				}
+			}
+
+			function markToken(match, variable) {
+				bindings[variable] = {}
+				return '<span ' + bindingMark + '="' + variable + '"></span>'
+			}
+
+			function bind(variable) {
+				// 根据自定义的data属性来找到对应变量的dom类数组，并缓存在bindings对应的变量的els属性上，然后删除这些自定义的属性
+				bindings[variable].els = el.querySelectorAll('[' + bindingMark + '="' + variable + '"]')
+					;[].forEach.call(bindings[variable].els, function (e) {
+						e.removeAttribute(bindingMark)
+					})
+				// 把每个绑定到dom上的变量都重新定义到当前实例的data对象上，目的就是data上对应的变量发生变化时，能引起dom上的值的变动
+				Object.defineProperty(data, variable, {
+					set: function (newVal) {
+						// 赋值时，找到bindings对应的变量，将其value赋值为当前值，并赋值给dom的textContent
+						[].forEach.call(bindings[variable].els, function (e) {
+							bindings[variable].value = e.textContent = newVal
+						})
+					},
+					get: function () {
+						// 取值时，直接从bindings对应的变量的value上读取
+						return bindings[variable].value
+					}
+				})
+			}
+		}
+
+		var app = new Element('test', {
+			msg: 'hello'
+		})
+
+	</script>
+</body>
+
+</html>
