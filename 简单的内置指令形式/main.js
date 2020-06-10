@@ -24,6 +24,7 @@ function Seed(opts) {
 
     // initialize all variables by invoking setters
     for (var key in bindings) {
+        // 将需要双向绑定的变量同步到当前实例的scope对象上，同时触发了变量的set函数
         self.scope[key] = opts.scope[key]
     }
 
