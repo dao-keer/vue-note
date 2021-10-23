@@ -13,7 +13,7 @@ function Seed(opts) {
         root = this.el = document.getElementById(opts.id),
         // 查找所有带vue指令的dom
         els = root.querySelectorAll(selector),
-        // 收集双向绑定的变量
+        // 收集响应式变化的变量
         bindings = {} // internal real data
     // 当前实例下的变量集合
     self.scope = {} // external interface
@@ -24,16 +24,16 @@ function Seed(opts) {
 
     // initialize all variables by invoking setters
     for (var key in bindings) {
-        // 将需要双向绑定的变量同步到当前实例的scope对象上，同时触发了变量的set函数
+        // 将响应式变化的变量同步到当前实例的scope对象上，更重要是要触发变量的set函数，做响应式监听
         self.scope[key] = opts.scope[key]
     }
 
     function processNode(el) {
         // 格式化每个包含vue指令的dom的属性集合
         cloneAttributes(el.attributes).forEach(function (attr) {
-            // 针对每个属性，生成一个指令对象
+            // 针对特定的属性，生成一个指令对象
             var directive = parseDirective(attr)
-            // 如果该指令是内置的，就开始做双向绑定操作
+            // 如果该指令是内置的，就开始做响应式监听
             if (directive) {
                 bindDirective(self, el, bindings, directive)
             }
@@ -89,7 +89,7 @@ function bindAccessors(seed, key, binding) {
             // 赋值时，变量相关的所有的指令对象里的update回调都要挨个执行一次，确保dom上的值发生更改
             binding.directives.forEach(function (directive) {
                 if (value && directive.filters) {
-                    // 如果value本身是个假值，这里的if分支就有bug
+                    // 如果是dom事件，这里的value是个函数，如果是非事件指令得到的是过滤器处理过的值
                     value = applyFilters(value, directive)
                 }
                 directive.update(
@@ -137,9 +137,9 @@ function parseDirective(attr) {
         ? {
             // 当前的属性map
             attr: attr,
-            // 当前指令绑定的变量
+            // 当前指令关联的变量
             key: key,
-            // 当前引用的过滤器
+            // 过滤器
             filters: filters,
             // 内置指令
             definition: def,
